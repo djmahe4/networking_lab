@@ -1,4 +1,73 @@
-### 🖥️ Server (`server_stop_wait.py`)
+# Stop-and-Wait ARQ Protocol
+
+The **Stop-and-Wait** protocol is a fundamental flow control and error control mechanism. The sender sends one frame and waits for an acknowledgement (ACK) before sending the next.
+
+---
+
+## ⚙️ How It Works
+1. **Send**: Sender transmits a frame.
+2. **Wait**: Sender starts a timer and waits for ACK.
+3. **Success**: If ACK arrives before timeout, send the next frame.
+4. **Resend**: If timeout occurs, resend the same frame.
+
+## 📝 Program Algorithm (Python Implementation)
+The system consists of two separate programs communicating over TCP sockets:
+
+### **Server Logic (`start_server`)**:
+1.  **Setup**: Create a TCP socket, bind it to localhost:65432, and listen for 1 connection.
+2.  **Accept**: Accept an incoming connection from the client.
+3.  **Receive Loop**:
+    *   Receive a data frame from the client.
+    *   **Simulate Reliability**:
+        *   Generate a random choice (True/False).
+        *   If True: Send an "ACK for Frame" back to the client.
+        *   If False: Print "ACK lost" (do nothing).
+4.  **Cleanup**: Close the connection once the client finishes.
+
+### **Client Logic (`start_client`)**:
+1.  **Setup**: Create a TCP socket and connect to the server.
+2.  **Transmission Loop**:
+    *   For each `frame` in the frame list:
+        *   **Retransmission Loop**:
+            *   Send the frame to the server.
+            *   Set a `timeout` of 3 seconds using `client_socket.settimeout(3)`.
+            *   **Receive ACK**:
+                *   Try to receive an ACK.
+                *   If successful: Break the inner loop and move to the next frame.
+                *   If `socket.timeout` occurs: Print "Timeout" and repeat the inner loop.
+3.  **Cleanup**: Close the socket when all frames are acknowledged.
+
+---
+
+### Sequence Diagram (Exam Logic)
+```mermaid
+sequenceDiagram
+    participant S as Sender
+    participant R as Receiver
+
+    Note over S,R: Successful Transmission
+    S->>R: Send Frame 0
+    R-->>S: Send ACK 0
+    
+    Note over S,R: Data Packet Loss (Timeout)
+    S->>R: Send Frame 1 (LOST)
+    Note right of S: Timer Expires!
+    S->>R: Resend Frame 1
+    R-->>S: Send ACK 1
+
+    Note over S,R: ACK Loss (Timeout)
+    S->>R: Send Frame 2
+    R--X S: Send ACK 2 (LOST)
+    Note right of S: Timer Expires!
+    S->>R: Resend Frame 2
+    R-->>S: Send ACK 2
+```
+
+---
+
+## 🖥️ Python Simulation
+
+### Server (`server_stop_wait.py`)
 ```python
 import socket
 import time
@@ -18,20 +87,17 @@ def start_server():
 
     while True:
         data = conn.recv(1024).decode()
-        if not data:
-            break
+        if not data: break
 
-        print(f"Received frame: {data}")
+        print(f"📥 Received frame: {data}")
 
-        # Simulate ACK loss (randomly drop ACKs to test retransmission)
+        # Simulate ACK loss (50% chance)
         if random.choice([True, False]):
             ack = f"ACK for {data}"
             conn.sendall(ack.encode())
-            print(f"Sent: {ack}")
+            print(f"✅ Sent: {ack}")
         else:
-            print(f"ACK for {data} lost!")
-
-        time.sleep(1)
+            print(f"⚠️ ACK for {data} lost (simulated)")
 
     conn.close()
 
@@ -39,9 +105,7 @@ if __name__ == "__main__":
     start_server()
 ```
 
----
-
-### 💻 Client (`client_stop_wait.py`)
+### Client (`client_stop_wait.py`)
 ```python
 import socket
 import time
@@ -53,67 +117,23 @@ def start_client():
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client_socket.connect((host, port))
 
-    frames = ["Frame1", "Frame2", "Frame3", "Frame4"]
+    frames = ["Frame 0", "Frame 1", "Frame 2"]
 
     for frame in frames:
         while True:
-            print(f"Sending: {frame}")
+            print(f"🚀 Sending: {frame}")
             client_socket.sendall(frame.encode())
 
-            # Wait for ACK with timeout
-            client_socket.settimeout(3)
+            client_socket.settimeout(3) # 3s Timeout
             try:
                 ack = client_socket.recv(1024).decode()
-                print(f"Received: {ack}")
-                break  # ACK received, move to next frame
+                print(f"📩 Received: {ack}")
+                break # Success!
             except socket.timeout:
-                print(f"Timeout! Resending {frame}...")
-
-            time.sleep(1)
+                print(f"⏰ Timeout! Resending {frame}...")
 
     client_socket.close()
 
 if __name__ == "__main__":
     start_client()
 ```
-
----
-
-### ⚙️ How It Works
-1. **Client** sends one frame at a time.
-2. **Server** receives the frame and sometimes "loses" the ACK (simulated).
-3. If the client doesn’t receive an ACK within the timeout, it retransmits the frame.
-4. This continues until all frames are successfully acknowledged.
-
----
-
-### 🔍 Example Output
-**Client side:**
-```
-Sending: Frame1
-Timeout! Resending Frame1...
-Received: ACK for Frame1
-Sending: Frame2
-Received: ACK for Frame2
-...
-```
-
-**Server side:**
-```
-Received frame: Frame1
-ACK for Frame1 lost!
-Received frame: Frame1
-Sent: ACK for Frame1
-Received frame: Frame2
-Sent: ACK for Frame2
-...
-```
-
----
-
-This is a simple simulation of Stop-and-Wait ARQ. You can extend it to:
-- Add sequence numbers to frames.
-- Handle corrupted frames.
-- Implement Go-Back-N or Selective Repeat for efficiency.
-
-Would you like me to **upgrade this into a multi-client version** where several clients can simultaneously use Stop-and-Wait with the server?
