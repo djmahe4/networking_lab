@@ -48,7 +48,7 @@ Follow these logical steps as implemented in the code:
 1.  **Initialize Topology**: Define the network as an adjacency matrix (dictionary of dictionaries) called `graph`.
 2.  **Initialize Tables**: Create a deep copy of the `graph` as `tables` to store routing information.
 3.  **Iteration Loop (Distance Vector Routine)**:
-    *   Run a loop for a fixed number of iterations (e.g., 5).
+    *   Run a loop for a fixed number of iterations (e.g., 5 [Actually it should be 'n-1' where n is the number of nodes]).
     *   Set a flag `updated = False`.
 4.  **Triple Nested Loop (The Core Logic)**:
     *   For each `router` in the network:
