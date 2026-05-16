@@ -93,17 +93,48 @@ gcc client.c -o client
 
 ```c id="stopwait-sender"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 
 int main() {
+
+    int sockfd;
+    struct sockaddr_in server_addr;
+
+    char buffer[1024];
     int i;
 
-    for(i = 1; i <= 5; i++) {
-        printf("Sending Frame %d\n", i);
-        sleep(1);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
-        printf("Acknowledgement received for Frame %d\n", i);
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(9000);
+
+    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+
+    connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+
+    for(i = 1; i <= 5; i++) {
+
+        printf("Sending Frame %d\n", i);
+
+        sprintf(buffer, "%d", i);
+
+        send(sockfd, buffer, sizeof(buffer), 0);
+
+        recv(sockfd, buffer, sizeof(buffer), 0);
+
+        printf("Received ACK %s\n", buffer);
+
+        sleep(1);
     }
+
+    strcpy(buffer, "-1");
+
+    send(sockfd, buffer, sizeof(buffer), 0);
+
+    close(sockfd);
 
     return 0;
 }
@@ -113,14 +144,61 @@ int main() {
 
 ```c id="stopwait-receiver"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 int main() {
-    int i;
 
-    for(i = 1; i <= 5; i++) {
-        printf("Received Frame %d\n", i);
-        printf("Sending ACK %d\n", i);
+    int sockfd, clientfd;
+    struct sockaddr_in server_addr;
+    char buffer[1024];
+    int expected_frame = 1;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(9000);
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+
+    bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+
+    listen(sockfd, 5);
+
+    printf("Receiver waiting...\n");
+
+    clientfd = accept(sockfd, NULL, NULL);
+
+    while(1) {
+
+        recv(clientfd, buffer, sizeof(buffer), 0);
+
+        int frame;
+
+        sscanf(buffer, "%d", &frame);
+
+        if(frame == -1)
+            break;
+
+        printf("Received Frame %d\n", frame);
+
+        if(frame == expected_frame) {
+
+            printf("Sending ACK %d\n", frame);
+
+            send(clientfd, buffer, sizeof(buffer), 0);
+
+            expected_frame++;
+        }
+        else {
+
+            printf("Duplicate Frame\n");
+        }
     }
+
+    close(clientfd);
+    close(sockfd);
 
     return 0;
 }
