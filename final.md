@@ -208,7 +208,10 @@ int main() {
         for(j = 0; j < nodes; j++) {
             scanf("%d", &cost[i][j]);
 
-            cost[i][j] = (cost[i][j] == 0) ? 999 : cost[i][j];
+            if(i == j)
+                cost[i][j] = 0;
+            else if(cost[i][j] == 0)
+                cost[i][j] = 999;
 
             rt[i].dist[j] = cost[i][j];
             rt[i].from[j] = j;
@@ -223,7 +226,7 @@ int main() {
                 for(k = 0; k < nodes; k++) {
 
                     if(rt[i].dist[j] > cost[i][k] + rt[k].dist[j]) {
-                        rt[i].dist[j] = rt[i].dist[k] + rt[k].dist[j];
+                        rt[i].dist[j] = cost[i][k] + rt[k].dist[j];
                         rt[i].from[j] = k;
                         count++;
                     }
