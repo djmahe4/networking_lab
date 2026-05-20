@@ -276,13 +276,11 @@ int main() {
 
     len = sizeof(client_addr);
 
-    recvfrom(sockfd, buffer, sizeof(buffer), 0,
-             (struct sockaddr*)&client_addr, &len);
+    recvfrom(sockfd, buffer, sizeof(buffer), 0,NULL,NULL);
 
     printf("Client: %s\n", buffer);
 
-    sendto(sockfd, "Hello Client", 12, 0,
-           (struct sockaddr*)&client_addr, len);
+    sendto(sockfd, "Hello Client", 12, 0,NULL,NULL);
 
     close(sockfd);
 
