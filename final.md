@@ -485,3 +485,76 @@ For Windows:
 server.exe
 client.exe
 ```
+
+# Tips
+
+Here are much simpler versions.
+
+---
+
+### 1. Client (send string using `sendto`)
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+
+int main(int argc, char *argv[]) {
+    int sock;
+    struct sockaddr_in addr;
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(atoi(argv[2]));
+    inet_pton(AF_INET, argv[1], &addr.sin_addr);
+
+    sendto(sock, argv[3], strlen(argv[3]), 0,
+           (struct sockaddr*)&addr, sizeof(addr));
+
+    close(sock);
+    return 0;
+}
+```
+
+**Run:**
+
+```
+./a.out 127.0.0.1 8080 hello
+```
+
+---
+
+### 2. Server (receive data)
+
+```c
+#include <stdio.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[]) {
+    int sock;
+    struct sockaddr_in serv, cli;
+    char buf[1024];
+    socklen_t len = sizeof(cli);
+
+    sock = socket(AF_INET, SOCK_DGRAM, 0);
+
+    serv.sin_family = AF_INET;
+    serv.sin_addr.s_addr = INADDR_ANY;
+    serv.sin_port = htons(argc > 1 ? atoi(argv[1]) : 8080);
+
+    bind(sock, (struct sockaddr*)&serv, sizeof(serv));
+
+    recvfrom(sock, buf, sizeof(buf), 0,
+             (struct sockaddr*)&cli, &len);
+
+    printf("%s\n", buf);
+
+    close(sock);
+    return 0;
+}
+```
+
