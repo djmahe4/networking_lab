@@ -310,11 +310,11 @@ int main() {
     server_addr.sin_port = htons(8080);
     inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
 
+    len = sizeof(server_addr);
+
     sendto(sockfd, "Hello Server", 12, 0,
            (struct sockaddr*)&server_addr,
-           sizeof(server_addr));
-
-    len = sizeof(server_addr);
+           len);
 
     recvfrom(sockfd, buffer, sizeof(buffer), 0,
              (struct sockaddr*)&server_addr, &len);
