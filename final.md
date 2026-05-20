@@ -558,3 +558,6 @@ int main(int argc, char *argv[]) {
 }
 ```
 
+## fgets(buffer, len(buffer),stdin)
+
+U can use this to input the string during live run
