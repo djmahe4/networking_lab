@@ -93,48 +93,43 @@ gcc client.c -o client
 
 ```c id="stopwait-sender"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
 int main() {
 
-    int sockfd;
-    struct sockaddr_in server_addr;
+    int sock;
+    struct sockaddr_in server;
+    char msg[100];
 
-    char buffer[1024];
-    int i;
+    sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    server.sin_family = AF_INET;
+    server.sin_port = htons(9000);
+    server.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(9000);
+    connect(sock, (struct sockaddr*)&server, sizeof(server));
 
-    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+    for(int i=1; i<=5; i++) {
 
-    connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
-
-    for(i = 1; i <= 5; i++) {
+        sprintf(msg, "%d", i);
 
         printf("Sending Frame %d\n", i);
 
-        sprintf(buffer, "%d", i);
+        send(sock, msg, strlen(msg)+1, 0);
 
-        send(sockfd, buffer, sizeof(buffer), 0);
+        recv(sock, msg, sizeof(msg), 0);
 
-        recv(sockfd, buffer, sizeof(buffer), 0);
-
-        printf("Received ACK %s\n", buffer);
+        printf("ACK Received: %s\n", msg);
 
         sleep(1);
     }
 
-    strcpy(buffer, "-1");
+    strcpy(msg, "end");
+    send(sock, msg, strlen(msg)+1, 0);
 
-    send(sockfd, buffer, sizeof(buffer), 0);
-
-    close(sockfd);
+    close(sock);
 
     return 0;
 }
@@ -144,61 +139,46 @@ int main() {
 
 ```c id="stopwait-receiver"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 
 int main() {
 
-    int sockfd, clientfd;
-    struct sockaddr_in server_addr;
-    char buffer[1024];
-    int expected_frame = 1;
+    int server_sock, client_sock;
+    struct sockaddr_in server;
+    char msg[100];
 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    server_sock = socket(AF_INET, SOCK_STREAM, 0);
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(9000);
-    server_addr.sin_addr.s_addr = INADDR_ANY;
+    server.sin_family = AF_INET;
+    server.sin_port = htons(9000);
+    server.sin_addr.s_addr = INADDR_ANY;
 
-    bind(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr));
+    bind(server_sock, (struct sockaddr*)&server, sizeof(server));
 
-    listen(sockfd, 5);
+    listen(server_sock, 1);
 
-    printf("Receiver waiting...\n");
+    printf("Waiting for sender...\n");
 
-    clientfd = accept(sockfd, NULL, NULL);
+    client_sock = accept(server_sock, NULL, NULL);
 
     while(1) {
 
-        recv(clientfd, buffer, sizeof(buffer), 0);
+        recv(client_sock, msg, sizeof(msg), 0);
 
-        int frame;
-
-        sscanf(buffer, "%d", &frame);
-
-        if(frame == -1)
+        if(strcmp(msg, "end") == 0)
             break;
 
-        printf("Received Frame %d\n", frame);
+        printf("Received Frame: %s\n", msg);
 
-        if(frame == expected_frame) {
+        send(client_sock, msg, strlen(msg)+1, 0);
 
-            printf("Sending ACK %d\n", frame);
-
-            send(clientfd, buffer, sizeof(buffer), 0);
-
-            expected_frame++;
-        }
-        else {
-
-            printf("Duplicate Frame\n");
-        }
+        printf("ACK Sent: %s\n", msg);
     }
 
-    close(clientfd);
-    close(sockfd);
+    close(client_sock);
+    close(server_sock);
 
     return 0;
 }
