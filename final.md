@@ -193,13 +193,13 @@ int main() {
 struct frame
 {
     int seq;
+    int ack;
 };
 
 struct frame f;
 
-int ack;
 int frame_error, ack_error;
-int turn = 0;          // 0 = sender turn, 1 = receiver turn
+int turn = 0;
 int timeout = 3;
 
 void sender();
@@ -208,6 +208,7 @@ void receiver();
 int main()
 {
     f.seq = 0;
+    f.ack = -1;
 
     while(f.seq < 5)
     {
@@ -226,6 +227,7 @@ void sender()
 
     if(turn == 0)
     {
+        // Send Frame
         if(waiting == 0)
         {
             printf("\nSENDER : Sending Frame %d\n", f.seq);
@@ -238,14 +240,16 @@ void sender()
             turn = 1;
         }
 
+        // Wait for ACK
         else
         {
             if(ack_error != 0)
             {
-                printf("SENDER : ACK %d Received\n", ack);
+                printf("SENDER : ACK %d Received\n", f.ack);
 
                 f.seq++;
                 waiting = 0;
+                timeout = 3;
             }
 
             else
@@ -265,6 +269,7 @@ void sender()
             }
         }
 
+        // Sender now waits for ACK
         if(waiting == 0)
             waiting = 1;
     }
@@ -278,7 +283,8 @@ void receiver()
         {
             printf("RECEIVER : Frame %d Received\n", f.seq);
 
-            ack = f.seq;
+            // ACK stored inside structure
+            f.ack = f.seq;
 
             ack_error = rand() % 4;
 
@@ -286,7 +292,7 @@ void receiver()
                 printf("RECEIVER : ACK Lost\n");
 
             else
-                printf("RECEIVER : ACK %d Sent\n", ack);
+                printf("RECEIVER : ACK %d Sent\n", f.ack);
         }
 
         turn = 0;
