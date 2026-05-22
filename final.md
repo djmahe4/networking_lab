@@ -194,9 +194,7 @@ struct frame
 {
     int seq;
     int ack;
-};
-
-struct frame f;
+} f;
 
 int frame_error, ack_error;
 int turn = 0;
