@@ -184,6 +184,116 @@ int main() {
 }
 ```
 
+## OR
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+
+struct frame
+{
+    int seq;
+};
+
+struct frame f;
+
+int ack;
+int frame_error, ack_error;
+int turn = 0;          // 0 = sender turn, 1 = receiver turn
+int timeout = 3;
+
+void sender();
+void receiver();
+
+int main()
+{
+    f.seq = 0;
+
+    while(f.seq < 5)
+    {
+        sender();
+        receiver();
+    }
+
+    printf("\nAll Frames Sent Successfully\n");
+
+    return 0;
+}
+
+void sender()
+{
+    static int waiting = 0;
+
+    if(turn == 0)
+    {
+        if(waiting == 0)
+        {
+            printf("\nSENDER : Sending Frame %d\n", f.seq);
+
+            frame_error = rand() % 4;
+
+            if(frame_error == 0)
+                printf("SENDER : Frame Lost\n");
+
+            turn = 1;
+        }
+
+        else
+        {
+            if(ack_error != 0)
+            {
+                printf("SENDER : ACK %d Received\n", ack);
+
+                f.seq++;
+                waiting = 0;
+            }
+
+            else
+            {
+                timeout--;
+
+                printf("SENDER : Waiting for ACK...\n");
+
+                if(timeout == 0)
+                {
+                    printf("SENDER : Timeout\n");
+                    printf("SENDER : Resending Frame %d\n", f.seq);
+
+                    waiting = 0;
+                    timeout = 3;
+                }
+            }
+        }
+
+        if(waiting == 0)
+            waiting = 1;
+    }
+}
+
+void receiver()
+{
+    if(turn == 1)
+    {
+        if(frame_error != 0)
+        {
+            printf("RECEIVER : Frame %d Received\n", f.seq);
+
+            ack = f.seq;
+
+            ack_error = rand() % 4;
+
+            if(ack_error == 0)
+                printf("RECEIVER : ACK Lost\n");
+
+            else
+                printf("RECEIVER : ACK %d Sent\n", ack);
+        }
+
+        turn = 0;
+    }
+}
+```
+
 ---
 
 # 3. Distance Vector Routing
