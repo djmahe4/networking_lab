@@ -236,6 +236,7 @@ void sender()
                 printf("SENDER : Frame Lost\n");
 
             turn = 1;
+            waiting=1;
         }
 
         // Wait for ACK
@@ -267,9 +268,6 @@ void sender()
             }
         }
 
-        // Sender now waits for ACK
-        if(waiting == 0)
-            waiting = 1;
     }
 }
 
